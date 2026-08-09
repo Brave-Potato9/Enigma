@@ -6,6 +6,7 @@
 
 using namespace std;
 
+//-------------------------constructor_and_destructor-------------------------
 EnigmaMachine::EnigmaMachine(Rotor *rotor[3]):
     reflector(nullptr)
 {
@@ -24,6 +25,7 @@ EnigmaMachine::~EnigmaMachine()
     delete reflector;
 }
 
+//-------------------------file_management-------------------------
 void EnigmaMachine::loadConfigs(const std::string& filename)
 {
     ifstream file(filename);
@@ -89,6 +91,7 @@ void EnigmaMachine::loadConfigs(const std::string& filename)
     file.close();
 }
 
+//-------------------------setters-------------------------
 void EnigmaMachine::setRotor(int index, Rotor *rotor)
 {
     if (index >= 0 && index < 3)
@@ -102,6 +105,7 @@ void EnigmaMachine::setReflector(Reflector *_reflector)
     reflector = _reflector;
 }
 
+//-------------------------cryptographic_methods-------------------------
 char EnigmaMachine::trasform(char takenChar)
 {
     if ((*rotors[0])++)
