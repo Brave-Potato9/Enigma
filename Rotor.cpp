@@ -34,6 +34,32 @@ int Rotor::getTurnoverPosition() const
 	return turnoverPosition;
 }
 
+std::string Rotor::getWiringString() const 
+{
+    return std::string(wiring.begin(), wiring.end());
+}
+
+void Rotor::setWiring(const std::string& newWiring) 
+{
+    if (newWiring.length() != 26) 
+	{
+        throw std::invalid_argument("Wiring must be exactly 26 characters");
+    }
+
+	std::string sorted = newWiring;
+    std::sort(sorted.begin(), sorted.end());
+    if (std::unique(sorted.begin(), sorted.end()) != sorted.end()) 
+	{
+        throw std::invalid_argument("All letters in wiring must be unique");
+    }
+	
+    wiring.assign(newWiring.begin(), newWiring.end());
+}
+
+int Rotor::getRingSetting() const {
+    return ringSetting;
+}
+
 bool Rotor::rotate()
 {
 	position = (position + 1) % 26;

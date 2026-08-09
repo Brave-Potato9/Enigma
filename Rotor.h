@@ -29,6 +29,9 @@ public:
 	int getPosition() const;
     void setPosition(int _position);
 	int getTurnoverPosition() const;
+	std::string getWiringString() const;
+	void setWiring(const std::string& newWiring);
+	int getRingSetting() const;
 
 	/*
 	rotate:
