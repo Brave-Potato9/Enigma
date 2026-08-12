@@ -30,13 +30,22 @@ public:
 	void setRotor(int index, Rotor* rotor);
 	void setReflector(Reflector* _reflector);
 
+//-------------------------getters-------------------------
+
+	int getRotorPosition(int index) const ;
+	int getRotorRing(int index) const ;
+
 //-------------------------cryptographic_methods-------------------------
 	/*
 	transform:
-
+		encrypt one character
 	*/
-	char trasform(char takenChar);
+	char transform(char takenChar);
 
+	/*
+	totalTransform:
+		encrypt a string
+	*/
 	std::string totalTransform(std::string takenString);
 };
 
