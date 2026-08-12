@@ -1,5 +1,5 @@
-#include "EnigmaMachine.h"
-#include "Defines.h"
+#include "../../include/EnigmaMachine.h"
+#include "../../include/Defines.h"
 #include <iostream>
 #include <string>
 #include <fstream>

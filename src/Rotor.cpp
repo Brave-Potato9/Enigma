@@ -1,4 +1,4 @@
-#include "Rotor.h"
+#include "../include/Rotor.h"
 #include <algorithm>
 #include <stdexcept>
 

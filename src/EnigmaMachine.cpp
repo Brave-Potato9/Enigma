@@ -1,9 +1,9 @@
-#include "EnigmaMachine.h"
+#include "../include/EnigmaMachine.h"
+#include "../include/Defines.h"
 #include <cctype>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include "Defines.h"
 
 using namespace std;
 

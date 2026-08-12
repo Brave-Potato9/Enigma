@@ -1,5 +1,5 @@
-#include "EnigmaConfigurator.h"
-#include "Defines.h"
+#include "../../include/EnigmaConfigurator.h"
+#include "../../include/Defines.h"
 
 int main()
 {
