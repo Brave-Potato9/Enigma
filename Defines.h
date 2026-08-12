@@ -23,7 +23,7 @@
 enableVirtualTerminal:
     make windows terminal able to read ansi coler code
 */
-void enableVirtualTerminal()  
+inline void enableVirtualTerminal()  
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
