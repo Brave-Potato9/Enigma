@@ -33,12 +33,16 @@ void printHelp()
     cout << RESET;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 	// for colerful windows terminal
 	enableVirtualTerminal();
 
 	string configFile = "enigma_config.txt";
+    if (argc > 1) 
+    {
+        configFile = argv[1];
+    }
 
 	// Create machine instance with empty rotors
     Rotor* emptyRotors[3] = {nullptr, nullptr, nullptr};
