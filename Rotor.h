@@ -11,6 +11,7 @@ private:
 
 	//show that each alphabet is connected to which one
 	std::vector<char> wiring;
+	std::vector<char> inverseWiring;
 
 	//initial rotation of rotor
 	int ringSetting;
@@ -20,25 +21,38 @@ private:
 	int turnoverPosition;
 
 public:
+	//string contain all english letter
 	static const std::string ALPHABET;
 
+//-------------------------constructor-------------------------
 	Rotor(std::string _name, std::vector<char> _wiring, 
 		  int _ringSetting = 0, int _position = 0, int _turnoverPosition = 0);
 
+//-------------------------setters-------------------------
+	void setPosition(int _position);
+	void setWiring(const std::string& newWiring);
+
+//-------------------------getters-------------------------
 	std::string getName() const;
 	int getPosition() const;
-    void setPosition(int _position);
 	int getTurnoverPosition() const;
 	std::string getWiringString() const;
-	void setWiring(const std::string& newWiring);
 	int getRingSetting() const;
+
+//-------------------------rotation_logic_management-------------------------
+	/*
+	atNotch:
+		check the position with respect to ringSetting is at notch or not (for rotating next rotor)
+	*/
+	bool atNotch() const;
 
 	/*
 	rotate:
-		move the position forward if get to turnover return true
+		move the position forward
 	*/
-	bool rotate();
+	void rotate();
 
+//-------------------------cryptographic_method-------------------------
 	/*
 	transform:
 		transform the character with respect to direction(by enabling position and ringSetting):
@@ -50,9 +64,6 @@ public:
 			z <-> wiring[25]
 	*/
 	char transform(char takenCharacter, bool isBackward = false) const;
-
-	//overloaded operator++ for rotation
-	bool operator++(int);
 
 };
 
