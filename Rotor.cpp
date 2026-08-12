@@ -1,100 +1,199 @@
 #include "Rotor.h"
 #include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
 const string Rotor::ALPHABET = "abcdefghijklmnopqrstuvwxyz";
 
-Rotor::Rotor(string _name, vector<char> _wiring, 
-		    int _ringSetting, int _position, int _turnoverPosition):
-	name(_name),
-	wiring(_wiring),
-	ringSetting(_ringSetting),
-	position(_position),
-	turnoverPosition(_turnoverPosition)
-{}
-
-string Rotor::getName() const
+//-------------------------constructor-------------------------
+Rotor::Rotor(
+    string _name,
+    vector<char> _wiring,
+    int _ringSetting,
+    int _position,
+    int _turnoverPosition
+)
+    : name(_name),
+      wiring(_wiring),
+      ringSetting(_ringSetting),
+      position(_position),
+      turnoverPosition(_turnoverPosition)
 {
-	return name;
-}
-	
-int Rotor::getPosition() const
-{
-	return position;
+    //wiring validation
+    if (wiring.size() != 26)
+    {
+        throw invalid_argument("Rotor wiring must contain exactly 26 characters.");
+    }
+
+    string wiringString(wiring.begin(), wiring.end());
+
+    string sorted = wiringString;
+    sort(sorted.begin(), sorted.end());
+
+    if (sorted != ALPHABET)
+    {
+        throw invalid_argument(
+            "Rotor wiring must contain every letter a-z exactly once."
+        );
+    }
+
+    //ring  setting validation
+    if (ringSetting < 0 || ringSetting >= 26)
+    {
+        throw invalid_argument("Ring setting must be between 0 and 25.");
+    }
+
+    //position validation
+    if (position < 0 || position >= 26)
+    {
+        throw invalid_argument("Position must be between 0 and 25.");
+    }
+
+    //turnover validation
+    if (turnoverPosition < 0 || turnoverPosition >= 26)
+    {
+        throw invalid_argument("Turnover position must be between 0 and 25.");
+    }
+
+    //set inverseWiring with respect to Wiring
+    inverseWiring.resize(26);
+
+    for (int i = 0; i < 26; ++i)
+    {
+        inverseWiring[wiring[i] - 'a'] = 'a' + i;
+    }
 }
 
+//-------------------------setters-------------------------
 void Rotor::setPosition(int _position)
 {
-	position = _position;
+    //validation
+    if (_position < 0 || _position >= 26)
+    {
+        throw invalid_argument("Position must be between 0 and 25.");
+    }
+
+    position = _position;
 }
+
+
+void Rotor::setWiring(const string& newWiring)
+{
+    //validation(it must be 26 letter)
+    if (newWiring.length() != 26)
+    {
+        throw invalid_argument(
+            "Wiring must be exactly 26 characters."
+        );
+    }
+
+    string sorted = newWiring;
+    sort(sorted.begin(), sorted.end());
+
+    //validation(it must be a permutation of all english letter)
+    if (sorted != ALPHABET)
+    {
+        throw invalid_argument(
+            "Wiring must contain every letter a-z exactly once."
+        );
+    }
+
+    wiring.assign(newWiring.begin(), newWiring.end());
+
+    // Rebuild inverse wiring
+    inverseWiring.resize(26);
+
+    for (int i = 0; i < 26; ++i)
+    {
+        inverseWiring[wiring[i] - 'a'] = 'a' + i;
+    }
+}
+
+//-------------------------getters-------------------------
+string Rotor::getName() const
+{
+    return name;
+}
+
+
+int Rotor::getPosition() const
+{
+    return position;
+}
+
 
 int Rotor::getTurnoverPosition() const
 {
-	return turnoverPosition;
+    return turnoverPosition;
 }
 
-std::string Rotor::getWiringString() const 
+
+string Rotor::getWiringString() const
 {
-    return std::string(wiring.begin(), wiring.end());
+    return string(wiring.begin(), wiring.end());
 }
 
-void Rotor::setWiring(const std::string& newWiring) 
+
+int Rotor::getRingSetting() const
 {
-    if (newWiring.length() != 26) 
-	{
-        throw std::invalid_argument("Wiring must be exactly 26 characters");
-    }
-
-	std::string sorted = newWiring;
-    std::sort(sorted.begin(), sorted.end());
-    if (std::unique(sorted.begin(), sorted.end()) != sorted.end()) 
-	{
-        throw std::invalid_argument("All letters in wiring must be unique");
-    }
-	
-    wiring.assign(newWiring.begin(), newWiring.end());
-}
-
-int Rotor::getRingSetting() const {
     return ringSetting;
 }
 
-bool Rotor::rotate()
-{
-	position = (position + 1) % 26;
+//-------------------------rotation_logic_management-------------------------
 
-	//if position is in turnover next roter must rotate
-	return (position == turnoverPosition);
+bool Rotor::atNotch() const
+{
+    // Ring setting moves the notch relative to the window
+    return ((position + ringSetting) % 26) == turnoverPosition;
 }
-	
 
-char Rotor::transform(char takenChar, bool isBackward) const 
+
+void Rotor::rotate()
 {
-    
+    //rotate the rotor once
+    position = (position + 1) % 26;
+}
+
+//-------------------------cryptographic_method-------------------------
+char Rotor::transform(char takenChar, bool isBackward) const
+{
     size_t index = ALPHABET.find(takenChar);
-    
-    //enable the position and setting 
-    int shiftedIndex = (index + position - ringSetting + 26) % 26;
-    
-    char result;
-    if (!isBackward) 
-	{
-        result = wiring[shiftedIndex];
-    } 
-	else 
-	{
-        auto it = find(wiring.begin(), wiring.end(), ALPHABET[shiftedIndex]);
-        int wiringIndex = it - wiring.begin();
-        result = ALPHABET[wiringIndex];
-    }
-    
-	//reverse the shift
-    int finalIndex = (ALPHABET.find(result) - position + ringSetting + 26) % 26;
-    return ALPHABET[finalIndex];
-}
 
-bool Rotor::operator++(int)
-{
-	return this->rotate();
+    if (index == string::npos)
+    {
+        return takenChar;
+    }
+
+    int inputIndex = static_cast<int>(index);
+
+    if (!isBackward) // rotor[2] -> rotor[1] -> rotor[0] -> reflector
+    {
+        // Window/ring offset
+        int shiftedIndex =
+            (inputIndex + position - ringSetting + 26) % 26;
+
+        // Pass through rotor wiring
+        int wiredIndex =
+            wiring[shiftedIndex] - 'a';
+
+        // Undo window/ring offset
+        int outputIndex =
+            (wiredIndex - position + ringSetting + 26) % 26;
+
+        return ALPHABET[outputIndex];
+    }
+    else // rotor[2] <- rotor[1] <- rotor[0] <- reflector
+    {
+        // Apply window/ring offset before inverse mapping
+        int shiftedInput = (inputIndex + position - ringSetting + 26) % 26;
+
+        // Use inverse wiring on the shifted input
+        int invIndex = inverseWiring[shiftedInput] - 'a'; //in backward use inverseWiring
+
+        // Undo the offset to get final output
+        int outputIndex = (invIndex - position + ringSetting + 26) % 26;
+
+        return ALPHABET[outputIndex];
+    }
 }
