@@ -12,7 +12,8 @@ private:
     Reflector* reflector;
 
     void clearAll();
-
+	
+//-------------------------validation_method-------------------------
 	/*
 	isValidWiring:
 		check the taken wiring:
@@ -22,12 +23,15 @@ private:
 	*/
     bool isValidWiring(const std::string& wiring) const;
 
+//-------------------------random_configurating_methods-------------------------
 	/*
 	generateRandomWiring:
 		randomize a valid wiring
 	*/
     std::string generateRandomWiring() const;
+	void generateRandomAll();
 
+//-------------------------getter-------------------------
 	/*
 	getValidInt:
 		get an int from user that is valid and bitween min and max
@@ -40,6 +44,7 @@ private:
 	*/
     std::string getValidString(const std::string& prompt, bool allowEmpty = false) const;
 
+//-------------------------configuration_methods-------------------------
 	/*
 	configureRotor:
 		user adjust the rotor manualy or randomly
@@ -51,15 +56,24 @@ private:
 		user adjust the reflector manualy or randomly
 	*/
     void configureReflector();
-    void generateRandomAll();
+
+
+//-------------------------file_management-------------------------
     bool saveConfig(const std::string& filename = "enigma_config.txt") const;
+
+//-------------------------UI_methods-------------------------
     void showStatus() const;
 
 public:
+//-------------------------constructor-------------------------
     EnigmaConfigurator();
+
+//-------------------------destructor-------------------------
     ~EnigmaConfigurator();
 
+//-------------------------main_method-------------------------
     void run(); 
+
 };
 
 #endif
