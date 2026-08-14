@@ -18,6 +18,23 @@ Plugboard::Plugboard(const std::vector<std::pair<char, char>>& pairs)
 	
 }
 
+std::array<char, 26> Plugboard::getMapping()
+{
+	return mapping;
+}
+
+std::string Plugboard::getMappingString() const 
+{
+    std::string result;
+    
+	for (char c : mapping) 
+	{
+        result.push_back(c);
+    }
+
+    return result;
+}
+
 char Plugboard::swap(char character) const
 {
 	bool isLower = islower(character);

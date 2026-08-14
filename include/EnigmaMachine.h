@@ -3,12 +3,14 @@
 
 #include "Rotor.h"
 #include "Reflector.h"
+#include "Plugboard.h"
 
 class EnigmaMachine
 {
 private:
 	Rotor* rotors[3];
 	Reflector* reflector;
+	Plugboard* plugboard;
 
 public:
 //-------------------------constructor_and_destructor-------------------------
@@ -29,6 +31,7 @@ public:
 	*/
 	void setRotor(int index, Rotor* rotor);
 	void setReflector(Reflector* _reflector);
+	void setPlugboard(Plugboard* _plugboard);
 
 //-------------------------getters-------------------------
 

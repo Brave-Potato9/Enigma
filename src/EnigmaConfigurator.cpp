@@ -10,7 +10,8 @@ using namespace std;
 
 //-------------------------constructor-------------------------
 EnigmaConfigurator::EnigmaConfigurator(): 
-	reflector(nullptr) 
+	reflector(nullptr), 
+    plugboard(nullptr)
 {
     for (int i = 0; i < 3; i++) 
 	{
@@ -34,6 +35,9 @@ void EnigmaConfigurator::clearAll()
 
     delete reflector;
     reflector = nullptr;
+
+    delete plugboard;
+    plugboard = nullptr;
 }
 
 //-------------------------validation_method-------------------------
@@ -281,6 +285,59 @@ void EnigmaConfigurator::configureReflector()
     cout << BOLD << GREEN << "Reflector configured.\n" << RESET;
 }
 
+void EnigmaConfigurator::configurePlugboard()
+{
+    cout << BOLD << CYAN;
+    cout << "\n+-------------------------------------------------------+\n";
+    cout << "|                 Configuring Plugboard                 |\n";
+    cout << "+-------------------------------------------------------+\n";
+    cout << "| " << RESET << BOLD << MAGENTA << '1' << RESET << BOLD << CYAN << ". Set manualy                                        |\n";
+    cout << "| " << RESET << BOLD << MAGENTA << '2' << RESET << BOLD << CYAN << ". Set as defaulf                                     |\n";
+    cout << "+-------------------------------------------------------+\n";
+    cout << RESET;
+
+    int choice = getValidInt("Choice: ", 1, 2);
+
+    delete plugboard;
+    plugboard = new Plugboard();
+
+    if(choice == 1)
+    {
+        char input1, input2;
+
+        while (true)
+        {
+            cout << "Enter the chracters space seprated('q q' for stop): ";
+            cin >> input1 >> input2;
+
+            if(!isalpha(input1) || !isalpha(input2))
+            {
+                cerr << BOLD << RED << "please enter only two character space seprated" << RESET;
+                continue;
+            }
+            
+            if(input1 == 'q' && input2 == 'q')
+            {
+                break;
+            }
+            
+            try
+            {
+                plugboard->addPair(input1, input2);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << BOLD << RED << e.what() << RESET << '\n';
+                continue;
+            }
+            
+        }
+        
+    }
+    
+    cout << BOLD << GREEN << "Plugboard configured.\n" << RESET;
+}
+
 //-------------------------file_management-------------------------
 bool EnigmaConfigurator::saveConfig(const string& filename) const 
 {
@@ -310,6 +367,11 @@ bool EnigmaConfigurator::saveConfig(const string& filename) const
     if (reflector) 
 	{
         file << "reflector: " << reflector->getWiringString() << "\n";
+    }
+
+    if (plugboard) 
+    {
+        file << "plugboard: " << plugboard->getMappingString() << "\n";
     }
     
     file.close();
@@ -351,6 +413,33 @@ void EnigmaConfigurator::showStatus() const
         cout << RED << "Reflector: Not set\n" << RESET;
     }
 
+    if (plugboard) 
+    {
+        cout << GREEN << "Plugboard: ";
+        bool hasPairs = false;
+
+        for (int i = 0; i < 26; ++i) 
+        {
+            char from = static_cast<char>('a' + i);
+            char to = plugboard->getMapping()[i];
+            if (from != to) 
+            {
+                cout << from << "<->" << to << " ";
+                hasPairs = true;
+            }
+        }
+
+        if (!hasPairs) 
+        {
+            cout << ORANGE << "(empty)" << RESET;
+        }
+        cout << "\n" << RESET;
+    } 
+    else 
+    {
+        cout << ORANGE << "Plugboard: Not set\n" << RESET;
+    }
+
     cout << BOLD << CYAN << "+-------------------------------------------------------+\n" << RESET;
 }
 
@@ -369,13 +458,14 @@ void EnigmaConfigurator::run()
         cout << "| " << RESET << BOLD << MAGENTA << '2' << RESET << BOLD << CYAN << ". Configure Rotor 2                                  |\n";
         cout << "| " << RESET << BOLD << MAGENTA << '3' << RESET << BOLD << CYAN << ". Configure Rotor 3                                  |\n";
         cout << "| " << RESET << BOLD << MAGENTA << '4' << RESET << BOLD << CYAN << ". Configure Reflector                                |\n";
-        cout << "| " << RESET << BOLD << MAGENTA << '5' << RESET << BOLD << CYAN << ". Generate random wiring                             |\n";
-        cout << "| " << RESET << BOLD << MAGENTA << '6' << RESET << BOLD << CYAN << ". Save configuration                                 |\n";
-        cout << "| " << RESET << BOLD << MAGENTA << '7' << RESET << BOLD << CYAN << ". Exit                                               |\n";
+        cout << "| " << RESET << BOLD << MAGENTA << '5' << RESET << BOLD << CYAN << ". Configure Plugboard                                |\n";
+        cout << "| " << RESET << BOLD << MAGENTA << '6' << RESET << BOLD << CYAN << ". Generate random wiring                             |\n";
+        cout << "| " << RESET << BOLD << MAGENTA << '7' << RESET << BOLD << CYAN << ". Save configuration                                 |\n";
+        cout << "| " << RESET << BOLD << MAGENTA << '8' << RESET << BOLD << CYAN << ". Exit                                               |\n";
         cout << "+-------------------------------------------------------+\n";
         cout << RESET;
 
-        option = getValidInt("Choice: ", 1, 7);
+        option = getValidInt("Choice: ", 1, 8);
         
         switch (option) 
 		{
@@ -395,11 +485,15 @@ void EnigmaConfigurator::run()
 				configureReflector(); 
 				break;
 
-            case 5: //Generate random wiring
+            case 5: //Configure Plugboard
+				configurePlugboard(); 
+				break;
+
+            case 6: //Generate random wiring
 				generateRandomAll(); 
 				break;
 
-            case 6: //Save configuration
+            case 7: //Save configuration
 				if(reflector && rotors[0] && rotors[1] && rotors[2])
 				{
 					saveConfig(); 
@@ -410,7 +504,7 @@ void EnigmaConfigurator::run()
 				}
 				break;
 
-            case 7: //Exit 
+            case 8: //Exit 
                 return;
 
             default: 

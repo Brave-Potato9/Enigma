@@ -9,7 +9,8 @@ using namespace std;
 
 //-------------------------constructor_and_destructor-------------------------
 EnigmaMachine::EnigmaMachine(Rotor *rotor[3]):
-    reflector(nullptr)
+    reflector(nullptr),
+    plugboard(nullptr)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -24,6 +25,7 @@ EnigmaMachine::~EnigmaMachine()
         delete rotors[i];
     }
     delete reflector;
+    delete plugboard;
 }
 
 //-------------------------file_management-------------------------
@@ -142,7 +144,40 @@ void EnigmaMachine::loadConfigs(const std::string& filename)
             vector<char> wiringVec(value.begin(), value.end());
             reflector = new Reflector(wiringVec);
         }
+        else if (key == "plugboard") 
+        {
+            if (value.length() != 26) 
+            {
+                cerr << BOLD << RED << "Error: Plugboard wiring must be 26 characters.\n" << RESET;
+                continue;
+            }
+            
+            vector<pair<char, char>> pairs;
+            for (int i = 0; i < 26; ++i) 
+            {
+                char from = 'a' + i;
+                char to = value[i];
+                if (from != to) 
+                {
+                    if (from < to) 
+                    {  
+                        pairs.push_back({from, to});
+                    }
+                }
+            }
+
+            try 
+            {
+                Plugboard* pb = new Plugboard(pairs);
+                setPlugboard(pb);
+            } 
+            catch (const exception& e) 
+            {
+                cerr << BOLD << RED << "Error loading plugboard: " << e.what() << "\n" << RESET;
+            }
+        }
     }
+
     file.close();
 }
 
@@ -159,6 +194,13 @@ void EnigmaMachine::setReflector(Reflector *_reflector)
 {
     reflector = _reflector;
 }
+
+void EnigmaMachine::setPlugboard(Plugboard* _plugboard) 
+{
+    delete plugboard;
+    plugboard = _plugboard;
+}
+
 
 int EnigmaMachine::getRotorPosition(int index) const 
 {
@@ -229,6 +271,9 @@ char EnigmaMachine::transform(char takenChar)
     // Right rotor always steps.
     rotors[2]->rotate();
 
+    //apply the plugboard swap
+    takenChar = plugboard->swap(takenChar);
+
 
     // forward path (Right → Middle → Left)
     /*
@@ -264,6 +309,8 @@ char EnigmaMachine::transform(char takenChar)
     signal = rotors[1]->transform(signal, true);  // middle rotor (inverse)
     signal = rotors[2]->transform(signal, true);  // right rotor (inverse)
 
+    //apply the plugboard swap
+    signal = plugboard->swap(signal);
 
     //output
     return signal;

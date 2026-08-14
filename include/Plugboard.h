@@ -16,6 +16,9 @@ public:
 	Plugboard();
 	Plugboard(const std::vector<std::pair<char, char>>& pairs);
 
+	std::array<char, 26> getMapping(); 
+	std::string getMappingString() const;
+
 	char swap(char character) const; 
     void addPair(char firstC, char secondC);
     void reset();

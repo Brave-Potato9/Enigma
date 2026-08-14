@@ -3,6 +3,7 @@
 
 #include "Rotor.h"
 #include "Reflector.h"
+#include "Plugboard.h"
 #include <string>
 
 class EnigmaConfigurator 
@@ -10,6 +11,7 @@ class EnigmaConfigurator
 private:
     Rotor* rotors[3];
     Reflector* reflector;
+	Plugboard* plugboard;
 
     void clearAll();
 	
@@ -56,6 +58,8 @@ private:
 		user adjust the reflector manualy or randomly
 	*/
     void configureReflector();
+
+	void configurePlugboard();
 
 
 //-------------------------file_management-------------------------
