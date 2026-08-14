@@ -11,6 +11,7 @@ add_library(enigma_core
     src/Reflector.cpp
     src/EnigmaMachine.cpp
     src/EnigmaConfigurator.cpp
+    src/Plugboard.cpp
 )
 
 add_executable(enigma_cli
