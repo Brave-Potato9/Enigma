@@ -323,7 +323,9 @@ string EnigmaMachine::totalTransform(string takenString)
     {
         if (isalpha(c))
         {
-            cipherString.push_back(transform(tolower(c)));
+            bool wasUpper = isupper(c);
+            char processed = transform(tolower(c));    
+            cipherString.push_back(wasUpper ? toupper(processed) : processed);
         }
         else
         {
