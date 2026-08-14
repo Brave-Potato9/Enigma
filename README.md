@@ -1,6 +1,6 @@
-# Enigma 
+# Enigma
 
-A modular C++ implementation of the **Enigma cipher machine**, featuring configurable rotors, ring settings, rotor positions, turnover positions, reflectors, persistent configuration files, random configuration generation, and an interactive command-line interface.
+A modular C++ implementation of an **Enigma-style cipher machine**, featuring configurable rotors, ring settings, rotor positions, turnover positions, reflectors, plugboard pairs, persistent configuration files, random configuration generation, and interactive command-line interfaces.
 
 The project is designed with a clean separation between the **cryptographic core**, **configuration system**, and **CLI tools**, making it easy to experiment with the internal mechanics of an Enigma-style machine.
 
@@ -17,8 +17,11 @@ The project is designed with a clean separation between the **cryptographic core
   * Initial rotor positions
   * Turnover positions
   * Rotor wiring
-* Reflector support with involution validation
-* Authentic-style rotor stepping and double-stepping behavior
+* Reflector support
+* Configurable plugboard
+* Plugboard pair swapping
+* Authentic-style rotor stepping
+* Double-stepping behavior
 * Random rotor wiring generation
 * Configuration save/load system
 * Interactive command-line interface
@@ -30,13 +33,20 @@ The project is designed with a clean separation between the **cryptographic core
 
 ---
 
-## How It Works
+# How It Works
 
-The encryption process follows the classic Enigma-style signal path:
+The encryption process follows the classic Enigma-style signal path.
+
+With the plugboard enabled, the complete signal path is:
 
 ```text
                     ┌──────────────┐
                     │   Keyboard   │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │  Plugboard   │
                     └──────┬───────┘
                            │
                            ▼
@@ -61,46 +71,57 @@ The encryption process follows the classic Enigma-style signal path:
                            │
                            ▼
                     ┌──────────────┐
-                    │ Rotor 1⁻¹    │
+                    │   Rotor 1⁻¹  │
                     └──────┬───────┘
                            │
                            ▼
                     ┌──────────────┐
-                    │ Rotor 2⁻¹    │
+                    │   Rotor 2⁻¹  │
                     └──────┬───────┘
                            │
                            ▼
                     ┌──────────────┐
-                    │ Rotor 3⁻¹    │
+                    │   Rotor 3⁻¹  │
                     └──────┬───────┘
                            │
                            ▼
                     ┌──────────────┐
-                    │   Output     │
+                    │  Plugboard   │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │    Output    │
                     └──────────────┘
 ```
 
-Before each character is processed, the rotor mechanism advances according to the configured turnover positions.
+Before every alphabetic character is encrypted, the rotors advance according to their configured turnover positions.
 
-The middle rotor also implements the characteristic **double-stepping behavior**:
+The middle rotor implements the characteristic **double-stepping mechanism**:
 
 ```text
-Right rotor  → always rotates
+Right rotor
+    │
+    └── always rotates
 
-Middle rotor → rotates when:
-               • right rotor is at its notch
-               OR
-               • middle rotor is at its notch
+Middle rotor
+    │
+    ├── rotates if right rotor is at its notch
+    │
+    └── rotates if middle rotor is at its notch
 
-Left rotor   → rotates when:
-               • middle rotor is at its notch
+Left rotor
+    │
+    └── rotates if middle rotor is at its notch
 ```
+
+The stepping is performed **before** the character enters the plugboard.
 
 ---
 
-## Rotor Model
+# Rotor Model
 
-Each rotor contains:
+Each `Rotor` contains:
 
 * A permutation of the 26 lowercase English letters
 * An inverse permutation
@@ -109,47 +130,59 @@ Each rotor contains:
 * A turnover position
 * A name
 
-The forward transformation can be represented conceptually as:
+A rotor can mathematically be represented as a permutation:
 
 ```text
-input
-  │
-  ▼
-position/ring offset
-  │
-  ▼
-rotor wiring
-  │
-  ▼
-inverse offset
-  │
-  ▼
-output
+R : {0,1,...,25} → {0,1,...,25}
 ```
 
-For the reverse path, the precomputed inverse wiring is used.
+The inverse permutation:
 
-This allows the same `Rotor` class to handle both directions of signal propagation.
+```text
+R⁻¹
+```
+
+is used when the signal travels back from the reflector.
+
+Conceptually, the forward path is:
+
+```text
+Input
+  │
+  ▼
+Position / Ring offset
+  │
+  ▼
+Rotor wiring
+  │
+  ▼
+Inverse offset
+  │
+  ▼
+Output
+```
+
+The same `Rotor` class therefore supports both forward and reverse signal propagation.
 
 ---
 
-## Reflector
+# Reflector
 
-The `Reflector` class validates that its wiring is a valid permutation and satisfies the required reflector properties.
+The `Reflector` represents the fixed substitution in the center of the machine.
 
-A valid reflector must satisfy:
+A valid reflector must behave as an involution:
 
 ```text
 R(R(x)) = x
 ```
 
-and must not contain fixed points:
+and must not map a letter to itself:
 
 ```text
 R(x) ≠ x
 ```
 
-Therefore the reflector wiring forms pairs such as:
+Therefore its wiring consists of pairs:
 
 ```text
 a ↔ y
@@ -158,23 +191,98 @@ c ↔ u
 ...
 ```
 
-Invalid reflector configurations are rejected during construction.
+Invalid reflector configurations are rejected.
+
+The project currently provides:
+
+```text
+Reflector B
+Reflector C
+Custom Reflector
+```
 
 ---
 
-## Configuration System
+# Plugboard
 
-The project includes a dedicated configuration application:
+The project includes a configurable `Plugboard` component.
+
+The plugboard is represented internally as a mapping of the 26 letters.
+
+By default:
+
+```text
+a → a
+b → b
+c → c
+...
+z → z
+```
+
+When a pair is added:
+
+```text
+a ↔ b
+```
+
+the mapping becomes:
+
+```text
+a → b
+b → a
+```
+
+The plugboard is applied twice during encryption:
+
+```text
+Input
+  │
+  ▼
+Plugboard
+  │
+  ▼
+Rotors → Reflector → Inverse Rotors
+  │
+  ▼
+Plugboard
+  │
+  ▼
+Output
+```
+
+A letter can belong to at most one plugboard pair.
+
+For example:
+
+```text
+ab cd ef
+```
+
+is valid, while:
+
+```text
+ab ac
+```
+
+is rejected because `a` is already connected to another letter.
+
+The plugboard also preserves the case of alphabetic input when used through `EnigmaMachine::totalTransform()`.
+
+---
+
+# Configuration System
+
+The project contains a dedicated configuration application:
 
 ```text
 enigma_setup
 ```
 
-It allows the user to configure:
+It provides an interactive interface for configuring the machine.
 
-### Rotors
+## Rotors
 
-Choose from five predefined rotor wirings:
+Five predefined rotor wirings are available:
 
 ```text
 I
@@ -184,7 +292,7 @@ IV
 V
 ```
 
-or create a custom rotor.
+A custom rotor can also be created.
 
 For each rotor, the user can specify:
 
@@ -196,30 +304,95 @@ Initial Position
 Turnover Position
 ```
 
-### Reflector
-
-The setup tool supports:
-
-```text
-Reflector B
-Reflector C
-Custom Reflector
-```
-
-### Random Configuration
-
-The application can also generate random rotor wirings and turnover positions.
-
-Randomly generated rotor wirings are checked so that the same wiring is not assigned to multiple rotors.
+The setup program prevents the same predefined rotor wiring from being selected more than once.
 
 ---
 
-## Configuration File
+## Reflector
 
-Configurations can be saved to:
+The setup program supports:
+
+```text
+1. Reflector B
+2. Reflector C
+3. Custom Reflector
+```
+
+Custom reflector wiring is validated before being accepted.
+
+---
+
+## Plugboard
+
+The plugboard can be configured manually or reset to an empty/default state.
+
+Manual configuration accepts pairs such as:
+
+```text
+a b
+c d
+e f
+```
+
+The configuration process ends with:
+
+```text
+q q
+```
+
+The program automatically rejects:
+
+* Non-alphabetic input
+* Pairing a letter with itself
+* Reusing a letter already connected to another pair
+
+---
+
+# Random Configuration
+
+The configuration program can generate random rotor wirings.
+
+Each generated wiring is:
+
+```text
+• exactly 26 characters
+• a permutation of a-z
+• different from the wiring of the other configured rotors
+```
+
+A random turnover position is also generated for every rotor:
+
+```text
+0 ≤ turnover ≤ 25
+```
+
+The generated rotor configuration uses:
+
+```text
+Ring Setting = 0
+Initial Position = 0
+```
+
+The generated configuration is displayed in the terminal before continuing.
+
+---
+
+# Configuration File
+
+The machine configuration can be saved to:
 
 ```text
 enigma_config.txt
+```
+
+A configuration contains:
+
+```text
+rotor1
+rotor2
+rotor3
+reflector
+plugboard
 ```
 
 Example:
@@ -232,39 +405,65 @@ rotor1: I, 0, 0, 16, ekmflgdqvzntowyhxuspaibrcj
 rotor2: II, 0, 0, 4, ajdksiruxblhwtmcqgznpyfvoe
 rotor3: III, 0, 0, 21, bdfhjlcprtxvznyeiwgakmusqo
 reflector: yruhqsldpxngokmiebfzcwvjat
+plugboard: badcfeghijklmnopqrstuvwxyz
 ```
 
-The encryption program loads this configuration when it starts.
+The plugboard line represents its complete 26-character mapping.
 
-The same configuration can also be reloaded during execution using:
+For example:
 
 ```text
-:r
+ab
 ```
 
-This provides a simple way to restore the machine to its initial state.
+being connected results in:
+
+```text
+a → b
+b → a
+```
+
+The encryption program loads the saved configuration when starting.
 
 ---
 
-## Command-Line Interface
+# Configuration Loading
 
-After configuration, run the CLI application:
+`EnigmaMachine::loadConfigs()` parses the configuration file and reconstructs:
+
+```text
+Rotor 1
+Rotor 2
+Rotor 3
+Reflector
+Plugboard
+```
+
+The loader validates the basic structure of the configuration and reports invalid entries through the terminal.
+
+This allows the machine configuration to persist between executions.
+
+---
+
+# Command-Line Interface
+
+After configuring the machine, run:
 
 ```text
 enigma_cli
 ```
 
-The interface supports the following commands:
+The CLI provides several commands.
 
 | Command | Description                                    |
 | ------- | ---------------------------------------------- |
 | `:h`    | Display help                                   |
 | `:s`    | Show current rotor positions and ring settings |
-| `:r`    | Reset machine to the initial configuration     |
+| `:r`    | Reset/reload the machine configuration         |
 | `:c`    | Clear the terminal                             |
 | `:q`    | Exit the program                               |
 
-Any other input is treated as plaintext and passed through the machine.
+Any other input is interpreted as plaintext.
 
 Example:
 
@@ -274,9 +473,203 @@ The machine state changes after every processed character because the rotors ste
 
 ---
 
-## Project Architecture
+# Encryption Process
 
-The project is divided into three main layers.
+For every alphabetic character:
+
+### 1. Rotor stepping
+
+The rotor positions are updated.
+
+```text
+Left ← Middle notch
+Middle ← Right notch OR Middle notch
+Right ← Always
+```
+
+### 2. Input plugboard
+
+The character passes through:
+
+```text
+Plugboard.swap()
+```
+
+### 3. Forward rotor traversal
+
+The signal travels:
+
+```text
+Rotor 3
+   ↓
+Rotor 2
+   ↓
+Rotor 1
+```
+
+### 4. Reflection
+
+The signal enters the reflector:
+
+```text
+Reflector
+```
+
+### 5. Reverse rotor traversal
+
+The signal travels through the inverse rotor mappings:
+
+```text
+Rotor 1⁻¹
+   ↓
+Rotor 2⁻¹
+   ↓
+Rotor 3⁻¹
+```
+
+### 6. Output plugboard
+
+Finally:
+
+```text
+Plugboard.swap()
+```
+
+is applied again.
+
+The resulting character is returned.
+
+---
+
+# Reciprocal Encryption
+
+An important property of an Enigma-style machine is that the transformation is reciprocal.
+
+For a fixed machine state:
+
+```text
+E(E(x)) = x
+```
+
+because the signal path uses reversible permutations and a reflector satisfying:
+
+```text
+R² = I
+```
+
+However, the rotor positions change after every character.
+
+Therefore, to decrypt a message correctly, the receiving machine must begin in the **same initial state** as the encrypting machine.
+
+The following must match:
+
+```text
+Rotor wirings
+Rotor positions
+Ring settings
+Turnover positions
+Reflector
+Plugboard
+```
+
+---
+
+# Class Architecture
+
+The project is divided into several classes.
+
+## `Rotor`
+
+Responsible for:
+
+* Rotor wiring
+* Inverse wiring
+* Position management
+* Ring settings
+* Turnover detection
+* Rotation
+* Forward transformation
+* Reverse transformation
+
+---
+
+## `Reflector`
+
+Responsible for:
+
+* Reflector wiring
+* Reflector validation
+* Involution behavior
+* Signal reflection
+
+---
+
+## `Plugboard`
+
+Responsible for:
+
+* Maintaining the 26-character mapping
+* Adding letter pairs
+* Rejecting duplicate connections
+* Resetting the mapping
+* Swapping characters
+* Exporting the mapping as a string
+
+---
+
+## `EnigmaMachine`
+
+Responsible for:
+
+* Managing the three rotors
+* Managing the reflector
+* Managing the plugboard
+* Rotor stepping
+* Character transformation
+* String transformation
+* Loading machine configuration
+
+The main transformation pipeline is:
+
+```text
+Plugboard
+    ↓
+Rotor 3
+    ↓
+Rotor 2
+    ↓
+Rotor 1
+    ↓
+Reflector
+    ↓
+Rotor 1⁻¹
+    ↓
+Rotor 2⁻¹
+    ↓
+Rotor 3⁻¹
+    ↓
+Plugboard
+```
+
+---
+
+## `EnigmaConfigurator`
+
+Responsible for:
+
+* Interactive configuration
+* Rotor selection
+* Custom rotors
+* Reflector selection
+* Custom reflectors
+* Plugboard configuration
+* Random rotor generation
+* Input validation
+* Configuration saving
+
+---
+
+# Project Architecture
 
 ```text
 EnigmaProject/
@@ -285,12 +678,14 @@ EnigmaProject/
 │   ├── Defines.h
 │   ├── Rotor.h
 │   ├── Reflector.h
+│   ├── Plugboard.h
 │   ├── EnigmaMachine.h
 │   └── EnigmaConfigurator.h
 │
 ├── src/
 │   ├── Rotor.cpp
 │   ├── Reflector.cpp
+│   ├── Plugboard.cpp
 │   ├── EnigmaMachine.cpp
 │   └── EnigmaConfigurator.cpp
 │
@@ -307,177 +702,109 @@ EnigmaProject/
 └── README.md
 ```
 
-### Core Library
+---
 
-The cryptographic implementation is contained in:
+# Core Library
 
-```text
-enigma_core
-```
-
-It consists of:
+The core implementation is organized around the following components:
 
 ```text
 Rotor
 Reflector
+Plugboard
 EnigmaMachine
 EnigmaConfigurator
 ```
 
-### Executables
+The cryptographic logic is separated from the user-facing applications.
 
-Two independent executables are generated:
-
-```text
-enigma_setup
-enigma_cli
-```
-
-This separation keeps the configuration interface independent from the encryption interface.
+This makes the core components reusable independently of the CLI.
 
 ---
 
-## Class Overview
-
-### `Rotor`
-
-Responsible for:
-
-* Rotor wiring
-* Inverse wiring
-* Position management
-* Ring settings
-* Turnover detection
-* Rotation
-* Forward transformation
-* Reverse transformation
-
-### `Reflector`
-
-Responsible for:
-
-* Reflector wiring
-* Wiring validation
-* Symmetry/involution validation
-* Signal reflection
-
-### `EnigmaMachine`
-
-Responsible for:
-
-* Managing the three rotors
-* Managing the reflector
-* Rotor stepping
-* Encryption/decryption transformation
-* Configuration loading
-* Processing complete strings
-
-### `EnigmaConfigurator`
-
-Responsible for:
-
-* Interactive configuration
-* Rotor selection
-* Reflector selection
-* Custom components
-* Random configuration
-* Configuration validation
-* Saving configuration files
-
----
-
-## Encryption and Decryption
-
-One of the important properties of an Enigma-style machine is that encryption is reciprocal.
-
-For a fixed machine state:
-
-```text
-E(E(x)) = x
-```
-
-provided that the machine starts from the same rotor configuration before both operations.
-
-In practical use, the sender and receiver therefore need to start with identical:
-
-```text
-Rotor wirings
-Rotor positions
-Ring settings
-Turnover positions
-Reflector
-```
-
-The rotor state also changes during encryption, so the starting configuration is part of the cryptographic key.
-
----
-
-## Validation
+# Validation
 
 The project performs validation at several levels.
 
-### Rotor Wiring
+## Rotor Wiring
 
 A rotor wiring must:
 
 ```text
 • contain exactly 26 characters
-• contain every letter a-z exactly once
+• contain unique letters
 ```
 
-### Reflector Wiring
+---
 
-A reflector must additionally:
+## Reflector Wiring
+
+A reflector must:
 
 ```text
+• contain 26 valid letters
+• be a valid permutation
 • contain no fixed points
-• be an involution
-• map every pair symmetrically
+• map pairs symmetrically
 ```
 
-### Numeric Configuration
+---
+
+## Plugboard
+
+A plugboard pair must:
+
+```text
+• contain two alphabetic characters
+• connect two different letters
+• use letters that are not already paired
+```
+
+---
+
+## Numeric Settings
 
 The following values are restricted to:
 
 ```text
-0 ≤ value < 26
+0 ≤ value ≤ 25
 ```
 
 for:
 
 ```text
 Ring Setting
-Position
+Initial Position
 Turnover Position
 ```
 
-Invalid user input is rejected and requested again.
+Invalid input is rejected and requested again.
 
 ---
 
-## Requirements
+# Requirements
 
 * C++11 or later
 * CMake 3.10+
 * A C++ compiler
-* Windows for the current ANSI/console implementation
+* Windows for the current terminal implementation
 
 The project currently uses:
 
-```cpp
+```cmake
 CMAKE_CXX_STANDARD 11
 ```
 
-and relies on the Windows API for enabling Virtual Terminal Processing.
+The terminal interface uses Windows console functionality for ANSI / Virtual Terminal Processing support.
 
 ---
 
-## Building
+# Building
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/EnigmaProject.git
+git clone https://github.com/Brave-Potato9/Enigma.git
 cd EnigmaProject
 ```
 
@@ -488,7 +815,7 @@ mkdir build
 cd build
 ```
 
-Configure the project:
+Configure:
 
 ```bash
 cmake ..
@@ -500,13 +827,13 @@ Build:
 cmake --build .
 ```
 
-The executables are configured to be placed in:
+After a successful build, the executables are placed in:
 
 ```text
 bin/
 ```
 
-After a successful build:
+Expected output:
 
 ```text
 bin/
@@ -516,9 +843,9 @@ bin/
 
 ---
 
-## Usage
+# Usage
 
-### 1. Create a configuration
+## 1. Configure the machine
 
 Run:
 
@@ -533,6 +860,7 @@ Rotor 1
 Rotor 2
 Rotor 3
 Reflector
+Plugboard
 ```
 
 Then select:
@@ -541,7 +869,7 @@ Then select:
 Save configuration
 ```
 
-The default configuration filename is:
+The default configuration file is:
 
 ```text
 enigma_config.txt
@@ -549,7 +877,7 @@ enigma_config.txt
 
 ---
 
-### 2. Start the machine
+## 2. Start the Enigma machine
 
 Run:
 
@@ -557,13 +885,15 @@ Run:
 enigma_cli.exe
 ```
 
-The program automatically attempts to load:
+The program loads:
 
 ```text
 enigma_config.txt
 ```
 
-A custom configuration file can also be supplied:
+as its machine configuration.
+
+A different configuration file can also be supplied if supported by the CLI:
 
 ```text
 enigma_cli.exe my_config.txt
@@ -571,95 +901,139 @@ enigma_cli.exe my_config.txt
 
 ---
 
-### 3. Encrypt a message
+## 3. Encrypt text
 
-Simply type:
+Enter a message:
 
 ```text
 > attackatdawn
 ```
 
-The machine returns the transformed text.
+The machine returns the transformed message.
 
-Spaces, punctuation, and other non-alphabetic characters are preserved.
+For example:
 
-Alphabetic input is normalized to lowercase.
+```text
+> attackatdawn
+> ...
+```
+
+The exact result depends on:
+
+```text
+Rotor configuration
+Rotor positions
+Ring settings
+Reflector
+Plugboard
+```
+
+and therefore changes with the machine configuration.
 
 ---
 
-## Design Goals
+# Design Goals
 
-This project was built with several goals in mind:
+This project was built to explore both the mathematics and implementation of an Enigma-style machine.
 
-1. **Understand the internal mechanics of the Enigma machine**
+Main goals:
+
+1. Understand Enigma's internal mechanics
 2. Practice object-oriented programming in C++
-3. Separate cryptographic logic from user interface code
-4. Implement permutation-based transformations
-5. Work with inverse mappings
-6. Implement stateful transformations
-7. Practice configuration serialization
-8. Build a reusable C++ core library
-9. Provide both interactive setup and encryption interfaces
+3. Model cryptographic components independently
+4. Work with permutations and inverse mappings
+5. Implement state-dependent transformations
+6. Implement rotor stepping
+7. Implement plugboard substitution
+8. Practice configuration serialization
+9. Build a reusable C++ core
+10. Separate configuration and encryption interfaces
 
-Rather than treating the Enigma machine as a single encryption function, the project models its individual components as independent objects.
+Instead of treating encryption as one large function, the project models the machine as a collection of interacting components.
 
 ---
 
-## Technical Notes
+# Technical Notes
 
-The machine operates on permutations of the 26-letter alphabet.
+The machine can be viewed mathematically as a composition of permutations.
 
-Each rotor can be viewed mathematically as a permutation:
-
-```text
-R : {0,1,...,25} → {0,1,...,25}
-```
-
-The reverse traversal uses:
+For a fixed rotor state, the transformation has the form:
 
 ```text
-R⁻¹
+P ∘ R₃⁻¹ ∘ R₂⁻¹ ∘ R₁⁻¹ ∘ F ∘ R₁ ∘ R₂ ∘ R₃ ∘ P
 ```
 
-The complete signal transformation can therefore be represented schematically as:
+where:
 
 ```text
-R₃ → R₂ → R₁ → F → R₁⁻¹ → R₂⁻¹ → R₃⁻¹
+P  = Plugboard permutation
+Rᵢ = Rotor permutation
+F  = Reflector permutation
 ```
 
-where `F` is the reflector permutation.
+The reflector satisfies:
 
-Rotor positions and ring settings modify these permutations through cyclic offsets.
+```text
+F² = I
+```
 
-This makes the implementation a useful practical example of:
+and the plugboard is also an involution:
+
+```text
+P² = I
+```
+
+The inverse rotor mappings satisfy:
+
+```text
+Rᵢ⁻¹ ∘ Rᵢ = I
+```
+
+Rotor positions and ring settings introduce state-dependent cyclic offsets into these permutations.
+
+This makes the implementation a practical example of:
 
 * Permutations
 * Inverse functions
 * Modular arithmetic
+* Function composition
 * Stateful transformations
 * Object-oriented design
 
 ---
 
-## Disclaimer
+# Disclaimer
 
 This project is primarily an **educational implementation of an Enigma-style cipher machine**.
 
-It should not be considered a modern secure cryptographic system. The original Enigma cipher is historically significant but cryptographically obsolete.
+It should not be considered a modern secure cryptographic system.
 
-The purpose of this project is to explore its mechanics, implementation, and software architecture rather than provide real-world security.
+The original Enigma cipher is historically significant but cryptographically obsolete.
+
+The purpose of this project is to explore:
+
+```text
+Cryptography
+Algorithms
+Permutations
+State machines
+Object-oriented design
+Software architecture
+```
+
+rather than provide real-world security.
 
 ---
 
-## License
+# License
 
 This project is intended for educational and experimental use.
 
-If you add a specific open-source license to the repository, replace this section with the corresponding license text.
+If an open-source license is added to the repository, replace this section with the corresponding license text.
 
 ---
 
-## Author
+# Author
 
 **Mohammadreza Ahmadi**
 
