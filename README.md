@@ -804,7 +804,7 @@ The terminal interface uses Windows console functionality for ANSI / Virtual Ter
 Clone the repository:
 
 ```bash
-git clone https://github.com/Brave-Potato9/Enigma.git
+git clone 'link'
 cd EnigmaProject
 ```
 
